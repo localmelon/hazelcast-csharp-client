@@ -51,37 +51,14 @@ namespace Hazelcast.Client.Spi
 
         public Task ScheduleWithCancellation(Action command, long delay, TimeUnit unit, CancellationToken token)
         {
-            var tcs = new TaskCompletionSource<object>();
-            var continueTask = tcs.Task.ContinueWith(t =>
-            {
-                if (!t.IsCanceled)
-                {
-                    command();
-                }
-            }, token);
-            new Timer(o =>
-            {
-                if (token.IsCancellationRequested)
-                {
-                    tcs.SetCanceled();
-                }
-                else
-                {
-                    tcs.SetResult(null);
-                }
-            }, null, unit.ToMillis(delay), Timeout.Infinite);
-            return continueTask;
+            int intDelay = unchecked((int)unit.ToMillis(delay));
+            return Task.Delay(intDelay).ContinueWith(t => command(), token);
         }
 
         public Task Schedule(Action command, long delay, TimeUnit unit)
         {
-            var tcs = new TaskCompletionSource<object>();
-            var continueTask = tcs.Task.ContinueWith(t =>
-            {
-                command();
-            });
-            new Timer(o => tcs.SetResult(null), null, unit.ToMillis(delay), Timeout.Infinite);
-            return continueTask;
+            int intDelay = unchecked((int)unit.ToMillis(delay));
+            return Task.Delay(intDelay).ContinueWith(t => command);
         }
 
         public void Shutdown()
